@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"time"
-	
+
 	"scloud/internal/client_side"
 	"scloud/utils/fake_json"
 )
@@ -17,7 +17,7 @@ func main() {
 		fmt.Println("Flag -l required to define number of messages")
 		os.Exit(1)
 	}
-	
+
 	st := time.Now()
 	// take 1 param from config
 	sender := client_side.New(*limit, fake_json.Generator{})

@@ -55,7 +55,7 @@ func (s *server) ListenAndServe() {
 		doneChan := make(chan struct{}, 1)
 		go s.handleReq(conn, doneChan)
 		go s.sendSavedIDs(conn, doneChan, finished)
-		<- finished
+		<-finished
 	}
 }
 
@@ -89,8 +89,8 @@ func (s *server) sendSavedIDs(conn net.Conn, done <-chan struct{}, finished chan
 	for {
 		select {
 		case _ = <-done:
-			finished<- struct{}{}
-			
+			finished <- struct{}{}
+
 			return
 		case <-ti.C:
 			saved := s.acc.GetSavedRange()
