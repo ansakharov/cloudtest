@@ -10,11 +10,12 @@ import (
 )
 
 type accumulator struct {
-	logName string
-	file    *os.File
-	dumper  dumper.Dumper
-	in      chan *entity.Message
-	out     chan []int
+	logName   string
+	file      *os.File
+	dumper    dumper.Dumper
+	in        chan *entity.Message
+	out       chan []int
+	writtenCh chan struct{}
 }
 
 type Accumulator interface {
@@ -25,9 +26,10 @@ type Accumulator interface {
 
 func New(dumper dumper.Dumper) Accumulator {
 	return &accumulator{
-		dumper: dumper,
-		in:     make(chan *entity.Message, 10000),
-		out:    make(chan []int, 1),
+		dumper:    dumper,
+		in:        make(chan *entity.Message, 10000),
+		out:       make(chan []int, 1),
+		writtenCh: make(chan struct{}, 1),
 	}
 }
 
@@ -50,24 +52,42 @@ func (acc *accumulator) Accumulate(tickFrequency time.Duration, batchSize int, c
 	defer tick.Stop()
 
 	buf := make([]*entity.Message, 0, batchSize)
+	acc.writtenCh <- struct{}{}
 
-	// Запись на диск каждые N ms или по достижении K сообщений.
+	// Мы хотим линейную запись без потенциальных репозиционирований и блоков,
+	// поэтому batchSize должен быть большим. Бесконечным он быть не должен - при записи терабайтов логов
+	// придется ждать, пока они придут по сети. Поэтому дампим на диск, когда достигнем batchSize, параллельно
+	// аккумулируем новые записи.
+	// При лагах сети буфер может долго не заполняться до batchSize, а при последней итерации не заполнится до batchSize
+	// никогда, вовсе тогда дампим его по таймеру.
 	for {
 		select {
 		case <-tick.C:
 			if len(buf) > 0 {
-				written := acc.dumper.WriteOnDisk(buf)
-				acc.out <- written
-				// re-init
+				<-acc.writtenCh
+				// дампим на диск асинхронно, параллельно наполняя новый буфер
+				go func(locBuff []*entity.Message) {
+					written := acc.dumper.WriteOnDisk(locBuff)
+					acc.out <- written
+					acc.writtenCh <- struct{}{}
+				}(buf)
+
+				// Сброс буфера
 				buf = make([]*entity.Message, 0, batchSize)
 			}
 		case item := <-acc.in:
 			buf = append(buf, item)
 
 			if len(buf) >= batchSize {
-				written := acc.dumper.WriteOnDisk(buf)
-				acc.out <- written
-				// re-init
+				<-acc.writtenCh
+				// дампим на диск асинхронно, параллельно наполняя новый буфер
+				go func(locBuff []*entity.Message) {
+					written := acc.dumper.WriteOnDisk(locBuff)
+					acc.out <- written
+					acc.writtenCh <- struct{}{}
+				}(buf)
+
+				// Сброс буфера
 				buf = make([]*entity.Message, 0, batchSize)
 			}
 		case _ = <-ctx.Done():

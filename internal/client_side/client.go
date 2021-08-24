@@ -47,7 +47,7 @@ func (c *client) Send() error {
 	start := time.Now()
 	c.prepareData()
 
-	fmt.Printf("Messages created, spent %.3fs\n", time.Now().Sub(start).Seconds())
+	fmt.Printf("Messages created, spent %.2fs\n", time.Now().Sub(start).Seconds())
 	start = time.Now()
 	fmt.Println("Start sending messages")
 
@@ -73,7 +73,7 @@ func (c *client) Send() error {
 	}()
 
 	wg.Wait()
-	fmt.Printf("All acks received, spent %.3fs\n", time.Now().Sub(start).Seconds())
+	fmt.Printf("All acks received, spent %.2fs\n", time.Now().Sub(start).Seconds())
 
 	return nil
 }
@@ -102,8 +102,6 @@ func (c *client) consumeAcks(conn net.Conn) {
 		}
 		keyStr := message[:len(message)-1]
 		key, _ := strconv.Atoi(keyStr)
-
-		//fmt.Println("Ack по ключу", key, " удалим из мапы")
 
 		delete(c.storage, key)
 
