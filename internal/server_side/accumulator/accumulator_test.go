@@ -116,3 +116,19 @@ func TestAccumulator_Accumulate_Write_On_Capacity_Trigger(t *testing.T) {
 	require.Len(t, saved, 1)
 	require.Equal(t, []int{toQueue.Key}, saved)
 }
+
+func TestAccumulator_GetSavedRange_Read_From_Done_Channel(t *testing.T) {
+	ctl := gomock.NewController(t)
+	defer ctl.Finish()
+
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+
+	dump := dumper.NewMockDumper(ctl)
+	acc := New(dump)
+
+	cancel()
+	saved := acc.GetSavedRange(ctx)
+
+	require.Nil(t, saved, saved)
+}
