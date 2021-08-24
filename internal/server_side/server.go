@@ -62,11 +62,14 @@ func (s *server) ListenAndServe() {
 
 func (s *server) handleReq(conn net.Conn, doneChan chan<- struct{}) {
 	defer func() {
+		fmt.Println("connection processed")
+
 		errCloseConn := conn.Close()
 		if errCloseConn != nil {
 			println(errCloseConn, "closeConnErr")
 		}
-		fmt.Println("connection processed")
+
+		doneChan <- struct{}{}
 	}()
 
 	reader := bufio.NewReader(conn)
@@ -75,8 +78,6 @@ func (s *server) handleReq(conn net.Conn, doneChan chan<- struct{}) {
 
 		// Клиент прислал финальный ack.
 		if rawInfo == "ack\n" {
-			doneChan <- struct{}{}
-
 			return
 		}
 
