@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"scloud/internal/client_side"
-	"scloud/utils/fake_json"
+	"scloud/utils/fake_messages"
 )
 
 func main() {
@@ -19,11 +19,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	var generator fake_json.BytesGenerator
+	var generator fake_messages.BytesGenerator
 	if !*randGen {
-		generator = &fake_json.SimpleGenerator{}
+		generator = &fake_messages.SimpleGenerator{}
 	} else {
-		generator = &fake_json.RandomGenerator{}
+		generator = &fake_messages.RandomGenerator{}
 	}
 
 	st := time.Now()

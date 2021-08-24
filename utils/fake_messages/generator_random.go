@@ -1,4 +1,4 @@
-package fake_json
+package fake_messages
 
 import (
 	"math/rand"

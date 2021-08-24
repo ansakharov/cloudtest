@@ -10,12 +10,12 @@ import (
 	"sync"
 	"time"
 
-	"scloud/utils/fake_json"
+	"scloud/utils/fake_messages"
 )
 
 type client struct {
 	limit    int
-	gen      fake_json.BytesGenerator
+	gen      fake_messages.BytesGenerator
 	storage  map[int][]byte
 	messages [][]byte
 }
@@ -26,7 +26,7 @@ type Client interface {
 
 func New(
 	limit int,
-	gen fake_json.BytesGenerator,
+	gen fake_messages.BytesGenerator,
 ) Client {
 	return &client{
 		limit:   limit,

@@ -1,4 +1,4 @@
-package fake_json
+package fake_messages
 
 type BytesGenerator interface {
 	Gen(n int) []byte
