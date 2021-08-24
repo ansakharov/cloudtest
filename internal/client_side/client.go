@@ -15,7 +15,7 @@ import (
 
 type client struct {
 	limit    int
-	gen      fake_json.Generator
+	gen      fake_json.BytesGenerator
 	storage  map[int][]byte
 	messages [][]byte
 }
@@ -26,7 +26,7 @@ type Client interface {
 
 func New(
 	limit int,
-	gen fake_json.Generator,
+	gen fake_json.BytesGenerator,
 ) Client {
 	return &client{
 		limit:   limit,

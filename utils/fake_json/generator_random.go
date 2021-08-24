@@ -7,7 +7,7 @@ import (
 
 var letters = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-func (g *Generator) Gen(n int) []byte {
+func (g *RandomGenerator) Gen(n int) []byte {
 	rand.Seed(time.Now().UnixNano())
 	b := make([]byte, n)
 	for i := range b {
@@ -16,4 +16,4 @@ func (g *Generator) Gen(n int) []byte {
 	return b
 }
 
-type Generator struct{}
+type RandomGenerator struct{}
