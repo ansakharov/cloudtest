@@ -5,9 +5,11 @@
 package accumulator_mock
 
 import (
+	context "context"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 	entity "scloud/internal/server_side/entity"
+	time "time"
 )
 
 // MockAccumulator is a mock of Accumulator interface
@@ -34,29 +36,29 @@ func (m *MockAccumulator) EXPECT() *MockAccumulatorMockRecorder {
 }
 
 // Accumulate mocks base method
-func (m *MockAccumulator) Accumulate() {
+func (m *MockAccumulator) Accumulate(duration time.Duration, batchSize int, ctx context.Context) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Accumulate")
+	m.ctrl.Call(m, "Accumulate", duration, batchSize, ctx)
 }
 
 // Accumulate indicates an expected call of Accumulate
-func (mr *MockAccumulatorMockRecorder) Accumulate() *gomock.Call {
+func (mr *MockAccumulatorMockRecorder) Accumulate(duration, batchSize, ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Accumulate", reflect.TypeOf((*MockAccumulator)(nil).Accumulate))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Accumulate", reflect.TypeOf((*MockAccumulator)(nil).Accumulate), duration, batchSize, ctx)
 }
 
 // GetSavedRange mocks base method
-func (m *MockAccumulator) GetSavedRange() []int {
+func (m *MockAccumulator) GetSavedRange(ctx context.Context) []int {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSavedRange")
+	ret := m.ctrl.Call(m, "GetSavedRange", ctx)
 	ret0, _ := ret[0].([]int)
 	return ret0
 }
 
 // GetSavedRange indicates an expected call of GetSavedRange
-func (mr *MockAccumulatorMockRecorder) GetSavedRange() *gomock.Call {
+func (mr *MockAccumulatorMockRecorder) GetSavedRange(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSavedRange", reflect.TypeOf((*MockAccumulator)(nil).GetSavedRange))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSavedRange", reflect.TypeOf((*MockAccumulator)(nil).GetSavedRange), ctx)
 }
 
 // AddToQueue mocks base method

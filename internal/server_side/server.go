@@ -44,8 +44,7 @@ func New(
 func (s *server) ListenAndServe() {
 	var wg sync.WaitGroup
 	go func() {
-
-		s.acc.Accumulate(time.Millisecond*200, 50000, s.parentContext)
+		s.acc.Accumulate(time.Millisecond*50, 10000, s.parentContext)
 	}()
 	defer s.parentCancel()
 
@@ -78,12 +77,11 @@ func (s *server) ListenAndServe() {
 
 func (s *server) handleReq(conn net.Conn, cancel context.CancelFunc) {
 	defer func() {
-		fmt.Println("connection processed")
-
 		errCloseConn := conn.Close()
 		if errCloseConn != nil {
 			println(errCloseConn, "closeConnErr")
 		}
+		fmt.Println("Connection closed")
 
 		cancel()
 	}()
@@ -103,7 +101,7 @@ func (s *server) handleReq(conn net.Conn, cancel context.CancelFunc) {
 }
 
 func (s *server) sendSavedIDs(conn net.Conn, ctx context.Context) {
-	ti := time.NewTicker(time.Millisecond * 200)
+	ti := time.NewTicker(time.Millisecond * 10)
 
 	for {
 		select {
