@@ -105,6 +105,7 @@ func (c *client) consumeAcks(conn net.Conn) {
 
 		delete(c.storage, key)
 
+		// Когда все подтверждения получены, сообщаем серверу, что записей больше не будет.
 		if len(c.storage) == 0 {
 			_, err = conn.Write([]byte("ack\n"))
 			if err != nil {
