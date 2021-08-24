@@ -14,8 +14,8 @@ import (
 )
 
 type server struct {
-	acc      accumulator.Accumulator
 	port     int
+	acc      accumulator.Accumulator
 	messages map[int]string
 	done     chan struct{}
 }
@@ -25,11 +25,12 @@ type Server interface {
 }
 
 func New(
+	port int,
 	acc accumulator.Accumulator,
 ) Server {
 	return &server{
+		port: port,
 		acc:  acc,
-		port: 8081,
 		done: make(chan struct{}, 1),
 	}
 }
@@ -39,7 +40,7 @@ func (s *server) ListenAndServe() {
 		s.acc.Accumulate(time.Millisecond*200, 50000, s.done)
 	}()
 
-	listener, err := net.Listen("tcp", "127.0.0.1:8081")
+	listener, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(s.port))
 	if err != nil {
 		log.Fatal("Can't start server", err)
 	}

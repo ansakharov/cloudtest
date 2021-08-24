@@ -14,6 +14,7 @@ import (
 )
 
 type client struct {
+	port     int
 	limit    int
 	gen      fake_messages.BytesGenerator
 	storage  map[int][]byte
@@ -25,10 +26,12 @@ type Client interface {
 }
 
 func New(
+	port int,
 	limit int,
 	gen fake_messages.BytesGenerator,
 ) Client {
 	return &client{
+		port:    port,
 		limit:   limit,
 		gen:     gen,
 		storage: make(map[int][]byte, limit),

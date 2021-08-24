@@ -28,7 +28,9 @@ func main() {
 
 	st := time.Now()
 	// take 1 param from config
-	sender := client_side.New(*limit, generator)
+
+	port := 8081
+	sender := client_side.New(port, *limit, generator)
 	err := sender.Send()
 	if err != nil {
 		fmt.Println("sender err", err)
