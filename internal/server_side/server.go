@@ -2,11 +2,13 @@ package server_side
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"log"
 	"net"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"scloud/internal/server_side/accumulator"
@@ -14,10 +16,11 @@ import (
 )
 
 type server struct {
-	port     int
-	acc      accumulator.Accumulator
-	messages map[int]string
-	done     chan struct{}
+	port          int
+	acc           accumulator.Accumulator
+	messages      map[int]string
+	parentContext context.Context
+	parentCancel  context.CancelFunc
 }
 
 type Server interface {
@@ -28,24 +31,31 @@ func New(
 	port int,
 	acc accumulator.Accumulator,
 ) Server {
+	parentCtx := context.Background()
+	parentCtx, parentCancel := context.WithCancel(parentCtx)
 	return &server{
-		port: port,
-		acc:  acc,
-		done: make(chan struct{}, 1),
+		port:          port,
+		acc:           acc,
+		parentContext: parentCtx,
+		parentCancel:  parentCancel,
 	}
 }
 
 func (s *server) ListenAndServe() {
+	var wg sync.WaitGroup
 	go func() {
-		s.acc.Accumulate(time.Millisecond*200, 50000, s.done)
+
+		s.acc.Accumulate(time.Millisecond*200, 50000, s.parentContext)
 	}()
+	defer s.parentCancel()
 
 	listener, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(s.port))
 	if err != nil {
 		log.Fatal("Can't start server", err)
 	}
-	finished := make(chan struct{}, 1)
 	for {
+		ctx, cancel := context.WithCancel(s.parentContext)
+
 		fmt.Println("Waiting for new connection")
 		conn, err := listener.Accept()
 		if err != nil {
@@ -53,14 +63,20 @@ func (s *server) ListenAndServe() {
 			continue
 		}
 
-		doneChan := make(chan struct{}, 1)
-		go s.handleReq(conn, doneChan)
-		go s.sendSavedIDs(conn, doneChan, finished)
-		<-finished
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			s.handleReq(conn, cancel)
+		}()
+		go func() {
+			defer wg.Done()
+			s.sendSavedIDs(conn, ctx)
+		}()
+		wg.Wait()
 	}
 }
 
-func (s *server) handleReq(conn net.Conn, doneChan chan<- struct{}) {
+func (s *server) handleReq(conn net.Conn, cancel context.CancelFunc) {
 	defer func() {
 		fmt.Println("connection processed")
 
@@ -69,7 +85,7 @@ func (s *server) handleReq(conn net.Conn, doneChan chan<- struct{}) {
 			println(errCloseConn, "closeConnErr")
 		}
 
-		doneChan <- struct{}{}
+		cancel()
 	}()
 
 	reader := bufio.NewReader(conn)
@@ -86,16 +102,16 @@ func (s *server) handleReq(conn net.Conn, doneChan chan<- struct{}) {
 	}
 }
 
-func (s *server) sendSavedIDs(conn net.Conn, done <-chan struct{}, finished chan<- struct{}) {
+func (s *server) sendSavedIDs(conn net.Conn, ctx context.Context) {
 	ti := time.NewTicker(time.Millisecond * 200)
+
 	for {
 		select {
-		case _ = <-done:
-			finished <- struct{}{}
-
+		case _ = <-ctx.Done():
 			return
 		case <-ti.C:
-			saved := s.acc.GetSavedRange()
+			// req ended
+			saved := s.acc.GetSavedRange(ctx)
 			if len(saved) != 0 {
 				for _, num := range saved {
 					// Ack message num
@@ -113,7 +129,10 @@ func (s *server) sendSavedIDs(conn net.Conn, done <-chan struct{}, finished chan
 func (s *server) parseMsg(rawInfo *string) (int, []byte) {
 	keyMsg := strings.Split(*rawInfo, "\r")
 	keyStr, msg := keyMsg[0], keyMsg[1]
-	key, _ := strconv.Atoi(keyStr)
+	key, err := strconv.Atoi(keyStr)
+	if err != nil {
+		fmt.Println(err)
+	}
 	msg = msg[:len(msg)-1]
 
 	return key, []byte(msg)

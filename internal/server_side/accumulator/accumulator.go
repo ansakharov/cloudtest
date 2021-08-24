@@ -1,6 +1,7 @@
 package accumulator
 
 import (
+	"context"
 	"os"
 	"time"
 
@@ -17,8 +18,8 @@ type accumulator struct {
 }
 
 type Accumulator interface {
-	Accumulate(duration time.Duration, batchSize int, done <-chan struct{})
-	GetSavedRange() []int
+	Accumulate(duration time.Duration, batchSize int, ctx context.Context)
+	GetSavedRange(ctx context.Context) []int
 	AddToQueue(message *entity.Message)
 }
 
@@ -35,11 +36,16 @@ func (acc *accumulator) AddToQueue(message *entity.Message) {
 	return
 }
 
-func (acc *accumulator) GetSavedRange() []int {
-	return <-acc.out
+func (acc *accumulator) GetSavedRange(ctx context.Context) []int {
+	select {
+	case _ = <-ctx.Done():
+		return nil
+	case saved := <-acc.out:
+		return saved
+	}
 }
 
-func (acc *accumulator) Accumulate(tickFrequency time.Duration, batchSize int, done <-chan struct{}) {
+func (acc *accumulator) Accumulate(tickFrequency time.Duration, batchSize int, ctx context.Context) {
 	tick := time.NewTicker(tickFrequency)
 	defer tick.Stop()
 
@@ -64,7 +70,7 @@ func (acc *accumulator) Accumulate(tickFrequency time.Duration, batchSize int, d
 				// re-init
 				buf = make([]*entity.Message, 0, batchSize)
 			}
-		case _ = <-done:
+		case _ = <-ctx.Done():
 			return
 		}
 	}

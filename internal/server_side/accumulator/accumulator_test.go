@@ -1,6 +1,7 @@
 package accumulator
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"testing"
@@ -23,7 +24,8 @@ func TestAccumulator_Accumulate_Write_On_Time_Trigger(t *testing.T) {
 		Key:   999,
 		Value: []byte("1-2-3"),
 	}
-	done := make(chan struct{}, 1)
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
 
 	dump := dumper.NewMockDumper(ctl)
 	dump.EXPECT().WriteOnDisk([]*entity.Message{&toQueue}).Return([]int{toQueue.Key}).Times(1)
@@ -40,7 +42,7 @@ func TestAccumulator_Accumulate_Write_On_Time_Trigger(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		// Ставим емкость бача 2, а запишем 1 значение, чтобы писать в файл по таймеру.
-		acc.Accumulate(time.Nanosecond, 2, done)
+		acc.Accumulate(time.Nanosecond, 2, ctx)
 	}()
 
 	var saved []int
@@ -49,14 +51,13 @@ func TestAccumulator_Accumulate_Write_On_Time_Trigger(t *testing.T) {
 		defer wg.Done()
 		for {
 			time.Sleep(time.Millisecond)
-			saved = acc.GetSavedRange()
-			fmt.Println(saved)
+			saved = acc.GetSavedRange(ctx)
 			if len(saved) > 0 {
 				break
 			}
 		}
 
-		done <- struct{}{}
+		cancel()
 	}()
 	wg.Wait()
 
@@ -74,7 +75,8 @@ func TestAccumulator_Accumulate_Write_On_Capacity_Trigger(t *testing.T) {
 		Key:   999,
 		Value: []byte("1-2-3"),
 	}
-	done := make(chan struct{}, 1)
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
 
 	dump := dumper.NewMockDumper(ctl)
 	dump.EXPECT().WriteOnDisk([]*entity.Message{&toQueue}).Return([]int{toQueue.Key}).Times(1)
@@ -91,7 +93,7 @@ func TestAccumulator_Accumulate_Write_On_Capacity_Trigger(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		// Ставим ожидание час, чтобы пойти по пути заполнения до batchSize.
-		acc.Accumulate(time.Hour, 1, done)
+		acc.Accumulate(time.Hour, 1, ctx)
 	}()
 
 	var saved []int
@@ -100,14 +102,14 @@ func TestAccumulator_Accumulate_Write_On_Capacity_Trigger(t *testing.T) {
 		defer wg.Done()
 		for {
 			time.Sleep(time.Millisecond)
-			saved = acc.GetSavedRange()
+			saved = acc.GetSavedRange(ctx)
 			fmt.Println(saved)
 			if len(saved) > 0 {
 				break
 			}
 		}
 
-		done <- struct{}{}
+		cancel()
 	}()
 	wg.Wait()
 
