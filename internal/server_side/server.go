@@ -27,10 +27,7 @@ type Server interface {
 	ListenAndServe()
 }
 
-func New(
-	port int,
-	acc accumulator.Accumulator,
-) Server {
+func New(port int, acc accumulator.Accumulator) Server {
 	parentCtx := context.Background()
 	parentCtx, parentCancel := context.WithCancel(parentCtx)
 	return &server{
@@ -43,15 +40,18 @@ func New(
 
 func (s *server) ListenAndServe() {
 	var wg sync.WaitGroup
+
+	defer s.parentCancel()
+
 	go func() {
 		s.acc.Accumulate(time.Millisecond*50, 10000, s.parentContext)
 	}()
-	defer s.parentCancel()
 
 	listener, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(s.port))
 	if err != nil {
 		log.Fatal("Can't start server", err)
 	}
+
 	for {
 		ctx, cancel := context.WithCancel(s.parentContext)
 
@@ -62,11 +62,12 @@ func (s *server) ListenAndServe() {
 			continue
 		}
 
-		wg.Add(2)
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			s.handleReq(conn, cancel)
 		}()
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			s.sendSavedIDs(conn, ctx)
@@ -108,12 +109,11 @@ func (s *server) sendSavedIDs(conn net.Conn, ctx context.Context) {
 		case _ = <-ctx.Done():
 			return
 		case <-ti.C:
-			// req ended
 			saved := s.acc.GetSavedRange(ctx)
 			if len(saved) != 0 {
 				for _, num := range saved {
-					// Ack message num
 					numStr := strconv.Itoa(num)
+					// Ack на клиента
 					_, err := conn.Write([]byte(numStr + "\n"))
 					if err != nil {
 						fmt.Println(err, "writeAnswer")

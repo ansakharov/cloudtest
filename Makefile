@@ -1,4 +1,8 @@
-.PHONY: cover
+.PHONY: cover mock test
+
+test:
+	go test -race -count=1 ./...
+
 cover:
 	go test -race -count=1 -coverprofile=./test-cover.out ./...
 	go tool cover -html=./test-cover.out

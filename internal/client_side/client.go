@@ -22,7 +22,7 @@ type client struct {
 }
 
 type Client interface {
-	Send() error
+	Produce() error
 }
 
 func New(
@@ -38,7 +38,7 @@ func New(
 	}
 }
 
-func (c *client) Send() error {
+func (c *client) Produce() error {
 	var err error
 	var wg sync.WaitGroup
 
@@ -48,6 +48,7 @@ func (c *client) Send() error {
 	c.prepareData()
 
 	fmt.Printf("Messages created, spent %.2fs\n", time.Now().Sub(start).Seconds())
+	fmt.Println("Connecting to server")
 	start = time.Now()
 	fmt.Println("Start sending messages")
 

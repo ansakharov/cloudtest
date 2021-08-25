@@ -24,7 +24,7 @@ func (dump *dumper) WriteOnDisk(messages []*entity.Message) []int {
 		return nil
 	}
 
-	// Буфер по 4096b для сообщений + 4096b на \n
+	// Буфер по 4096b для каждого сообщения + 4096b на \n
 	dataToWrite := make([]byte, 0, 4096*len(messages)+4096)
 	var saved []int
 
