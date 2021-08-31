@@ -17,4 +17,5 @@ type File interface {
 	io.Seeker
 	io.Writer
 	Stat() (os.FileInfo, error)
+	Sync() error
 }

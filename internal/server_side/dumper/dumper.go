@@ -37,6 +37,8 @@ func (dump *dumper) WriteOnDisk(messages []*entity.Message) []int {
 
 	// Не рассматриваем проблемы с записью на диск
 	_, _ = dump.file.Write(dataToWrite)
+	// НЕ делаем Close, поэтому сразу нужно сделать сброс на диск.
+	_ = dump.file.Sync()
 
 	return saved
 }
